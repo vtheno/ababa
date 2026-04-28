@@ -19,6 +19,19 @@ class Environment:
     def put(self, var: Var, term: Term):
         self.ctx[var] = term
 
+    def deref(self, i: Var) -> Term:
+        t: Term = i
+        while isinstance(t, Var):
+            v = self.get(t)
+            if v is None:
+                break
+            t = v
+        return t
+
+    def __bool__(self) -> bool:
+        pred = len(self.ctx) > 0
+        return pred
+
     def __repr__(self) -> str:
         return f"{self.ctx}"
 
@@ -94,22 +107,40 @@ class Closure(Term):
 
 
 def solve(t1: Term, t2: Term, env: Environment) -> tuple[bool, Environment]:
-    # print("[DEBUG]", t1, t2, type(t1), type(t2))
     if isinstance(t1, Var) and isinstance(t2, Var):
+        print("[TRACE][VAR]", t1, t2)
+        env = env.clone()
         env.put(t1, t2)
         env.put(t2, t1)
         return True, env
+
     if isinstance(t1, Var):
+        print("[TRACE][VAR]", t1, t2)
+        env = env.clone()
         env.put(t1, t2)
         return True, env
+
     if isinstance(t2, Var):
+        print("[TRACE][VAR]", t1, t2)
+        env = env.clone()
         env.put(t2, t1)
         return True, env
+
+    if isinstance(t1, Atom) and isinstance(t2, Atom):
+        print("[TRACE][ATOM]", t1, t2)
+        return t1 == t2, env
+
+    if isinstance(t1, Nil) and isinstance(t2, Nil):
+        print("[TRACE][NIL]", t1, t2)
+        return t1 == t2, env
+
     if isinstance(t1, Cons) and isinstance(t2, Cons):
+        print("[TRACE][CONS]", t1, t2)
         ok1, e1 = solve(t1.fst, t2.fst, env)
         if ok1:
+            # print("[TRACE][CONS] ok1", e1)
             ok2, e2 = solve(t1.snd, t2.snd, e1)
-            return ok1 or ok2, e2
+            return ok2, e2
         return ok1, e1
     return False, env
 

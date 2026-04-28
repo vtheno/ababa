@@ -1,51 +1,76 @@
-from terms import Atom, Closure, Environment, Nil, Var, Cons, apply, call, solve
+from terms import *
 
 
+class DB:
+    def __init__(self, rules: list[Term]) -> None:
+        self.rules = rules
+
+    def prove(self, goal: Term, e: Environment):
+        checkpoints = []
+        for rule in self.rules:
+            if isinstance(goal, Cons) and isinstance(rule, Cons):
+                # print(goal, rule)
+                ok, new_e = solve(goal, rule.fst, e.clone())
+                if ok:
+                    checkpoints.append((ok, new_e, apply(rule.snd, new_e)))
+                # print(ok, new_e)
+        return checkpoints
+
+
+nil = Nil()
+e = Environment()
+X = Var("X")
+Y = Var("Y")
+Z = Var("Z")
+W = Var("W")
+
+zero = Atom("0")
+nat = Atom("nat")
+succ = Atom("succ")
+
+
+# r = solve(Cons(X, nil), Cons(Cons(zero, nil), nil), e)
+# print(r)
 def test1():
-    env = Environment()
-    nil = Nil()
-    X = Var("X")
-    Y = Var("Y")
-    Z = Var("Z")
-    f = Cons(X, Cons(Y, Z))
-    g = Cons(Cons(Atom("a"), nil), Cons(Y, Cons(Atom("c"), nil)))
-    r, env = solve(X, nil, env)
-    print(r, env)
-    r, env = solve(f, g, env)
-    print(r, env)
-    r = apply(f, env)
-    print(r, env)
+    db = DB(
+        [
+            Cons(Cons(nat, zero), nil),
+            Cons(Cons(nat, Cons(X, nil)), Cons(X, X)),
+        ]
+    )
+    print("=" * 50)
+    r = db.prove(Cons(nat, zero), e)
+    print(r)
+    print("=" * 50)
+    r = db.prove(Cons(nat, Cons(zero, nil)), e)
+    print(r)
+    print("=" * 50)
+    r = db.prove(Cons(nat, Cons(zero, Cons(zero, nil))), e)
+    print(r)
+    print("=" * 50)
+    r = db.prove(Cons(nat, Cons(Cons(zero, nil), nil)), e)
+    print(r)
+    print("=" * 50)
 
 
 def test2():
-    # 变量
-    x = Var("x")
-    y = Var("y")
+    e = Environment()
+    """
+    nat(0).
+    nat(succ(X)) :- nat(X).
+    """
+    nat_zero = Cons(Cons(nat, zero), Cons(nat, zero))
+    nat_succ = Cons(Cons(nat, Cons(succ, X)), Cons(nat, X))
+    db = DB([nat_zero, nat_succ])
 
-    # 参数：(x . y)
-    params = Cons(x, y)
-
-    # 函数体：(x . y)
-    body = Cons(y, x)
-
-    # 空环境闭包
-    env = Environment()
-    f = Closure(params, body, env)
-
-    # 调用：f (1 . (2 . nil))
-    a1 = Atom("1")
-    a2 = Atom("2")
-    nil = Atom("nil")
-    arg = Cons(a1, Cons(a2, nil))
-
-    # 执行
-    print("[Call]", call(f, arg))
+    print("=" * 50)
+    goal = Cons(nat, Cons(succ, zero))
+    r = db.prove(goal, e)
+    print(r)
+    print("=" * 50)
+    goal = Cons(nat, Cons(succ, Cons(succ, zero)))
+    r = db.prove(goal, e)
+    print(r)
 
 
-def tests():
-    test1()
-    test2()
-
-
-if __name__ == "__main__":
-    tests()
+test2()
