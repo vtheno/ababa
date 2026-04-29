@@ -1,22 +1,6 @@
 from terms import *
 
 
-class DB:
-    def __init__(self, rules: list[Term]) -> None:
-        self.rules = rules
-
-    def prove(self, goal: Term, e: Environment):
-        checkpoints = []
-        for rule in self.rules:
-            if isinstance(goal, Cons) and isinstance(rule, Cons):
-                # print(goal, rule)
-                ok, new_e = solve(goal, rule.fst, e.clone())
-                if ok:
-                    checkpoints.append((ok, new_e, apply(rule.snd, new_e)))
-                # print(ok, new_e)
-        return checkpoints
-
-
 nil = Nil()
 e = Environment()
 X = Var("X")
@@ -59,18 +43,54 @@ def test2():
     nat(0).
     nat(succ(X)) :- nat(X).
     """
-    nat_zero = Cons(Cons(nat, zero), Cons(nat, zero))
+    nat_zero = Cons(Cons(nat, zero), nil)
     nat_succ = Cons(Cons(nat, Cons(succ, X)), Cons(nat, X))
     db = DB([nat_zero, nat_succ])
 
     print("=" * 50)
     goal = Cons(nat, Cons(succ, zero))
-    r = db.prove(goal, e)
+    r = list(db.prove(goal, e))
     print(r)
     print("=" * 50)
     goal = Cons(nat, Cons(succ, Cons(succ, zero)))
-    r = db.prove(goal, e)
+    r = list(db.prove(goal, e))
     print(r)
 
 
+def test_grandfather():
+    print("\n=== grandfather test ===")
+    env = Environment()
+    X = Var("X")
+    Y = Var("Y")
+    Z = Var("Z")
+    john = Atom("john")
+    bob = Atom("bob")
+    tom = Atom("tom")
+    alice = Atom("alice")
+    father = Atom("father")
+    grandfather = Atom("grandfather")
+    nil = Nil()
+
+    f1 = Cons(Cons(father, Cons(john, Cons(bob, nil))), nil)
+    f2 = Cons(Cons(father, Cons(bob, Cons(tom, nil))), nil)
+    f3 = Cons(Cons(father, Cons(bob, Cons(alice, nil))), nil)
+    body = Cons(
+        Cons(father, Cons(X, Cons(Z, nil))),
+        Cons(Cons(father, Cons(Z, Cons(Y, nil))), nil),
+    )
+    g_rule = Cons(Cons(grandfather, Cons(X, Cons(Y, nil))), body)
+    db = DB([f1, f2, f3, g_rule])
+    for r in db.rules:
+        print(r)
+
+    goal = Cons(father, Cons(X, Cons(tom, nil)))
+    r = db.prove(goal, env)
+    print(r)
+    goal = Cons(grandfather, Cons(X, Cons(tom, nil)))
+    r = db.prove(goal, env)
+    print(r)
+
+
+test1()
 test2()
+test_grandfather()
